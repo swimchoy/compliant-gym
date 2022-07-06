@@ -32,8 +32,11 @@ int main(int argc, char* argv[]) {
   std::map<size_t, std::shared_ptr<raisim::GM>> gms;
   std::map<size_t, std::shared_ptr<cylinderContact::addedMass>> ams;
   std::map<size_t, raisim::Visuals*> mes;
+  std::map<size_t, raisim::Visuals*> vis;
   Eigen::Matrix3d rot;
   rot << 1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 1.0, 0.0;
+  raisim::Vec<4> q;
+  raisim::rotMatToQuat(rot, q);
   size_t row = grid.getNumTotalGrid() / 10;
   double scale = 0.1;
 
@@ -46,8 +49,12 @@ int main(int argc, char* argv[]) {
     cys.back()->setOrientation(rot);
     gms[cys.back()->getIndexInWorld()] = std::make_shared<GM>(grid.sample());
     ams[cys.back()->getIndexInWorld()] = std::make_shared<cylinderContact::addedMass>();
+    vis[cys.back()->getIndexInWorld()] = server.addVisualCylinder(
+        std::to_string(i)+"C", FOOT::r+0.001, FOOT::h+0.001, 1, 1, 1, 1.0
+        );
+    vis[cys.back()->getIndexInWorld()]->setOrientation(q.e());
     mes[cys.back()->getIndexInWorld()] = server.addVisualMesh(
-        std::to_string(i), std::string(binaryPath.getDirectory()) + "/rsc/raibot/meshes/RH_FOOT.STL",
+        std::to_string(i)+"M", std::string(binaryPath.getDirectory()) + "/rsc/raibot/meshes/RH_FOOT.STL",
         {1.1, 1.1, 1.1}, 0, 0, 0, 0.65);
     grid.update();
   }
@@ -74,6 +81,7 @@ int main(int argc, char* argv[]) {
       ams[c->getIndexInWorld()]->advance(
           &world, c, gms[c->getIndexInWorld()].get());
       mes[c->getIndexInWorld()]->setPosition(c->getPosition());
+      vis[c->getIndexInWorld()]->setPosition(c->getPosition());
     }
 
     world.integrate();
