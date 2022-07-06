@@ -28,7 +28,8 @@ int main (int argc, char* argv[]) {
   std::vector<std::string> bodyColObjNames = {"base/0", "LF_THIGH/0", "RF_THIGH/0", "LH_THIGH/0", "RH_THIGH/0"};
   for (auto &name: bodyColObjNames) { robot->getCollisionBody(name).setCollisionGroup(raisim::COLLISION(10)); }
   world.setDefaultMaterial(0.15, 0.0, 0.01);
-  world.addGround(0.0, "default", raisim::COLLISION(10));
+  auto ground = world.addGround(0.0, "default", raisim::COLLISION(10));
+  ground->setAppearance("dune");
 //  world.addGround(0.0, "default", raisim::COLLISION(2) | raisim::COLLISION(3) | raisim::COLLISION(4) | raisim::COLLISION(5));
 
   raisim::worldBridge bridge;

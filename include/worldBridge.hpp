@@ -54,6 +54,7 @@ class worldBridge {
       boxes_.push_back(world->addBox(0.25, 0.25, 0.05, 1.0, "default",
                                     raisim::COLLISION(i+2), raisim::COLLISION(i+2)));
       boxes_.back()->setName(boxNames[i]);
+      boxes_.back()->setAppearance("0, 0, 0, 0");
       robot_->getCollisionBody(shankColObjNames_[i]).setCollisionGroup(raisim::COLLISION(i+2));
       robot_->getCollisionBody(shankColObjNames_[i]).setCollisionMask(raisim::COLLISION(i+2) | raisim::COLLISION(63));
       robot_->getCollisionBody(footColObjNames_[i]).setCollisionGroup(raisim::COLLISION(i+2));
