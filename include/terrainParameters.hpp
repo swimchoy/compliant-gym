@@ -5,8 +5,8 @@
 //
 // All rights reserved.
 
-#ifndef _COMPLIANT_GYM_TERRAIN_PARAMETER_HPP_
-#define _COMPLIANT_GYM_TERRAIN_PARAMETER_HPP_
+#ifndef _COMPLIANT_GYM__TERRAIN_PARAMETER_HPP_
+#define _COMPLIANT_GYM__TERRAIN_PARAMETER_HPP_
 
 #include "contactContainer.hpp"
 
@@ -38,6 +38,8 @@ struct GM {
     b_t = params[9];
   }
 
+  GM () {}
+
   double mu = 2.0;                      // recruitment rate
   double theta = 3.14159 / 3.;          // shear band angle (60 deg)
   double c_g = 2.7;            // surrounding mass scaling factor
@@ -58,4 +60,4 @@ struct GM {
 
 } // namespace raisim
 
-#endif  //_COMPLIANT_GYM_TERRAIN_PARAMETER_HPP_
+#endif  //_COMPLIANT_GYM__TERRAIN_PARAMETER_HPP_

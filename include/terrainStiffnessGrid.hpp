@@ -5,11 +5,11 @@
 //
 // All rights reserved.
 
-#ifndef _COMPLIANT_GYM_TERRAIN_STIFFNESS_GRID_HPP_
-#define _COMPLIANT_GYM_TERRAIN_STIFFNESS_GRID_HPP_
+#ifndef _COMPLIANT_GYM__TERRAIN_STIFFNESS_GRID_HPP_
+#define _COMPLIANT_GYM__TERRAIN_STIFFNESS_GRID_HPP_
 
 #include <Eigen/Core>
-#include "grid.hpp"
+#include "grid/grid.hpp"
 
 namespace env {
 
@@ -85,4 +85,4 @@ size_t terrainStiffnessGrid::getNumTotalGrid() const
 
 } // namespace env
 
-#endif //_COMPLIANT_GYM_TERRAIN_STIFFNESS_GRID_HPP_
+#endif //_COMPLIANT_GYM__TERRAIN_STIFFNESS_GRID_HPP_

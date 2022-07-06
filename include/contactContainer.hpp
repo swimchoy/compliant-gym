@@ -19,9 +19,7 @@ struct ContactContainer {
   raisim::Vec<3> vimp_prev;
   raisim::Vec<3> pos;
   raisim::Mat<3, 3> rot;
-//  raisim::Mat<3, 3> MappInv;
   raisim::Mat<3, 3> MappInv_W;
-//  Eigen::MatrixXd jaco;
   raisim::SparseJacobian sparse_jaco;
   raisim::Vec<3> dtRTJMinvTauMinusB;
   raisim::MatDyn MinvJTR;

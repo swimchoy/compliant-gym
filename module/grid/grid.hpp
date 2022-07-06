@@ -5,8 +5,8 @@
 //
 // All rights reserved.
 
-#ifndef COMPLIANT_GYM_GRID_HPP_
-#define COMPLIANT_GYM_GRID_HPP_
+#ifndef _COMPLIANT_GYM__GRID_HPP_
+#define _COMPLIANT_GYM__GRID_HPP_
 
 #include <map>
 #include <vector>
@@ -63,4 +63,4 @@ dType Grid<dType>::get() {
 
 } // namespace env
 
-#endif //COMPLIANT_GYM_GRID_HPP_
+#endif //_COMPLIANT_GYM__GRID_HPP_

@@ -8,9 +8,26 @@ include_directories (${EIGEN3_INCLUDE_DIRS})
 
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/rsc" DESTINATION ${CMAKE_BINARY_DIR})
 
+macro(subdir_names result srcdir)
+    file(GLOB children ${srcdir}/*)
+    set(dirlist "")
+    foreach(child ${children})
+        get_filename_component(name ${child} NAME)
+        if(IS_DIRECTORY ${child})
+            list(APPEND dirlist ${name})
+        endif()
+    endforeach()
+    set(${result} ${dirlist})
+endmacro()
+
+subdir_names(CONTROLLERS module/controller)
+list(REMOVE_ITEM CONTROLLERS common)
+
+add_subdirectory(module/controller)
+
 function(create_executable name)
     add_executable(${name} src/${name}.cpp)
-    target_link_libraries(${name} PUBLIC raisim::raisim pthread)
+    target_link_libraries(${name} PUBLIC raisim::raisim pthread ${CONTROLLERS})
     target_include_directories(${name} PUBLIC ${EIGEN3_INCLUDE_DIRS} include module)
     if (CMAKE_BUILD_TYPE STREQUAL "RELEASE" OR CMAKE_BUILD_TYPE STREQUAL "Release")
         target_compile_options(${name} PRIVATE -mtune=native -fPIC -O3 -g -march=native)
@@ -18,3 +35,4 @@ function(create_executable name)
 endfunction()
 
 create_executable(cylinder_visualizer)
+create_executable(robot_visualizer)
