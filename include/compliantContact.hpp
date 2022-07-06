@@ -9,7 +9,7 @@
 #define RSG_RAIBOT__COMPLIANT_CONTACT_HPP_
 
 #include "contactContainer.hpp"
-#include "terrainParameters.hpp"
+#include "parameters.hpp"
 
 namespace raisim
 {

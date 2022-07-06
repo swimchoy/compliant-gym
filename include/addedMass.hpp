@@ -6,14 +6,14 @@
 #define _COMPLIANT_GYM__ADDED_MASS_HPP_
 
 #include "compliantContact.hpp"
-#include "terrainParameters.hpp"
+#include "parameters.hpp"
 
 namespace cylinderContact
 {
 
 class addedMass {
  private:
-  raisim::CompliantContact oursContact_;
+  raisim::CompliantContact compliantContact_;
   raisim::ContactContainer contact_;
 
   static raisim::Vec<2> prox_t (const Eigen::Vector2d & in, const double &lam_z, const double &mu) {
@@ -30,46 +30,46 @@ class addedMass {
     contact_.pos[2] -= raisim::FOOT::r;
     contact_.vimp_prev = cyl->getLinearVelocity();
 
-    bool isActive = oursContact_.isActive();
+    bool isActive = compliantContact_.isActive();
 
     if (contact_.pos[2] <= 0. && !isActive) {
-      oursContact_.activate(&contact_, gm);
-      oursContact_.update(world, &contact_);
+      compliantContact_.activate(&contact_, gm);
+      compliantContact_.update(world, &contact_);
     }
 
     else if (contact_.pos[2] > 0. && isActive) {
-      oursContact_.deactivate();
+      compliantContact_.deactivate();
     }
 
     else if (contact_.pos[2] <= 0. && isActive) {
-      oursContact_.update(world, &contact_);
+      compliantContact_.update(world, &contact_);
     }
 
     auto simulation_dt = world->getTimeStep();
     double mu = world->getMaterialPairProperties("default", "default").c_f;
     double c_t = 0.5 / cyl->getMass();
 
-    contact_.imp = {0., 0., oursContact_.getFilteredNormalImp(simulation_dt)};
+    contact_.imp = {0., 0., compliantContact_.getFilteredNormalImp(simulation_dt)};
     double err = 1;
     while (err > 1e-5) {
       err = 0;
       contact_.vimp = contact_.vimp_prev + contact_.imp / cyl->getMass();
       raisim::Vec<2> next_imp_t = prox_t(contact_.imp.e().head(2) - contact_.vimp.e().head(2) * c_t,
-                                         oursContact_.getNormalForTangential(simulation_dt),
+                                         compliantContact_.getNormalForTangential(simulation_dt),
 //                                         contact_.imp[2],
                                          mu);
       err += (contact_.imp.e().head(2) - next_imp_t.e()).norm();
       contact_.imp.head<2>() = next_imp_t;
     }
 
-    if (oursContact_.isActive()) {
+    if (compliantContact_.isActive()) {
       cyl->setExternalForce(cyl->getIndexInWorld(), contact_.imp / simulation_dt);
     }
 
   }
 
   bool isActive() {
-    return oursContact_.isActive();
+    return compliantContact_.isActive();
   }
 
 };
