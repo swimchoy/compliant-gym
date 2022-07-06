@@ -12,11 +12,16 @@
 #include "terrainStiffnessGrid.hpp"
 
 int main(int argc, char* argv[]) {
+  auto binaryPath = raisim::Path::setFromArgv(argv[0]);
 
   /// config world
   double simulation_dt = 0.00025;
   raisim::World world;
   world.setTimeStep(simulation_dt);
+
+  /// config visualizer
+  raisim::RaisimServer server(&world);
+  server.launchServer(8080);
 
   /// terrain property grid setup
   env::terrainStiffnessGrid grid;
@@ -26,6 +31,7 @@ int main(int argc, char* argv[]) {
   std::vector<raisim::Cylinder*> cys;
   std::map<size_t, std::shared_ptr<raisim::GM>> gms;
   std::map<size_t, std::shared_ptr<cylinderContact::addedMass>> ams;
+  std::map<size_t, raisim::Visuals*> mes;
   Eigen::Matrix3d rot;
   rot << 1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 1.0, 0.0;
   size_t row = grid.getNumTotalGrid() / 10;
@@ -40,13 +46,11 @@ int main(int argc, char* argv[]) {
     cys.back()->setOrientation(rot);
     gms[cys.back()->getIndexInWorld()] = std::make_shared<GM>(grid.sample());
     ams[cys.back()->getIndexInWorld()] = std::make_shared<cylinderContact::addedMass>();
+    mes[cys.back()->getIndexInWorld()] = server.addVisualMesh(
+        std::to_string(i), std::string(binaryPath.getDirectory()) + "/rsc/raibot/meshes/RH_FOOT.STL",
+        {1.1, 1.1, 1.1}, 0, 0, 0, 0.65);
     grid.update();
   }
-
-  /// config visualizer
-  raisim::RaisimServer server(&world);
-  server.launchServer(8080);
-  server.focusOn(cys[0]);
 
   /// for sandy terrain visualization
   {
@@ -69,6 +73,7 @@ int main(int argc, char* argv[]) {
     {
       ams[c->getIndexInWorld()]->advance(
           &world, c, gms[c->getIndexInWorld()].get());
+      mes[c->getIndexInWorld()]->setPosition(c->getPosition());
     }
 
     world.integrate();

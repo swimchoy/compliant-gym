@@ -6,10 +6,15 @@ find_package(raisim CONFIG REQUIRED)
 find_package(Eigen3 REQUIRED)
 include_directories (${EIGEN3_INCLUDE_DIRS})
 
-add_executable(cylinder_visualizer
-        src/cylinder_visualizer.cpp)
-target_link_libraries(cylinder_visualizer PUBLIC raisim::raisim pthread)
-target_include_directories(cylinder_visualizer PUBLIC ${EIGEN3_INCLUDE_DIRS} include module)
-if (CMAKE_BUILD_TYPE STREQUAL "RELEASE" OR CMAKE_BUILD_TYPE STREQUAL "Release")
-    target_compile_options(cylinder_visualizer PRIVATE -mtune=native -fPIC -O3 -g -march=native)
-endif()
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/rsc" DESTINATION ${CMAKE_BINARY_DIR})
+
+function(create_executable name)
+    add_executable(${name} src/${name}.cpp)
+    target_link_libraries(${name} PUBLIC raisim::raisim pthread)
+    target_include_directories(${name} PUBLIC ${EIGEN3_INCLUDE_DIRS} include module)
+    if (CMAKE_BUILD_TYPE STREQUAL "RELEASE" OR CMAKE_BUILD_TYPE STREQUAL "Release")
+        target_compile_options(${name} PRIVATE -mtune=native -fPIC -O3 -g -march=native)
+    endif()
+endfunction()
+
+create_executable(cylinder_visualizer)
