@@ -84,7 +84,7 @@ int main(int argc, char* argv[]) {
       vis[c->getIndexInWorld()]->setPosition(c->getPosition());
     }
 
-    world.integrate();
+    server.integrateWorldThreadSafe();
     std::this_thread::sleep_for(std::chrono::microseconds(5000));
   }
 
