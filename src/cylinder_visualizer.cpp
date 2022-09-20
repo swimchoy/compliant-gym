@@ -21,7 +21,6 @@ int main(int argc, char* argv[]) {
 
   /// config visualizer
   raisim::RaisimServer server(&world);
-  server.launchServer(8080);
 
   /// terrain property grid setup
   env::terrainStiffnessGrid grid;
@@ -45,7 +44,7 @@ int main(int argc, char* argv[]) {
     cys.push_back(world.addCylinder(FOOT::r, FOOT::h, 5));
     cys.back()->setPosition(scale * static_cast<double>(i / row),
                             scale * static_cast<double>(i % row),
-                            0.05);
+                            0.25);
     cys.back()->setOrientation(rot);
     gms[cys.back()->getIndexInWorld()] = std::make_shared<GM>(grid.sample());
     ams[cys.back()->getIndexInWorld()] = std::make_shared<cylinderContact::addedMass>();
@@ -74,6 +73,8 @@ int main(int argc, char* argv[]) {
   }
 
   /// contact model simulation
+  server.launchServer(8080);
+
   while (world.getWorldTime() < 100.0)
   {
     for (auto &c: cys)

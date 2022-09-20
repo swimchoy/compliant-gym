@@ -27,9 +27,8 @@ int main (int argc, char* argv[]) {
   /// set ground contacting with body and thighs
   std::vector<std::string> bodyColObjNames = {"base/0", "LF_THIGH/0", "RF_THIGH/0", "LH_THIGH/0", "RH_THIGH/0"};
   for (auto &name: bodyColObjNames) { robot->getCollisionBody(name).setCollisionGroup(raisim::COLLISION(10)); }
-  world.setDefaultMaterial(0.15, 0.0, 0.01);
+  world.setDefaultMaterial(0.8, 0.0, 0.01);
   auto ground = world.addGround(0.0, "default", raisim::COLLISION(10));
-  ground->setAppearance("dune");
 //  world.addGround(0.0, "default", raisim::COLLISION(2) | raisim::COLLISION(3) | raisim::COLLISION(4) | raisim::COLLISION(5));
 
   raisim::worldBridge bridge;
@@ -43,6 +42,7 @@ int main (int argc, char* argv[]) {
 
   raisim::GM gm;
   gm.k_div_A = 1.0e6;
+  gm.sigma_rft = 0.2e6;
   bridge.setTerrainParameters(gm);
 
   Eigen::Vector3f command = {1.0, 0.0, 0.0};
@@ -56,7 +56,9 @@ int main (int argc, char* argv[]) {
   int maxStep = 100000000;
   for (int i = 0; i < maxStep; ++i) {
     controller.advance(&world);
+    server.lockVisualizationServerMutex();
     bridge.integrate(&world);
+    server.unlockVisualizationServerMutex();
     std::this_thread::sleep_for(std::chrono::microseconds(50));
   }
   server.killServer();
