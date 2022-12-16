@@ -32,11 +32,11 @@ class terrainStiffnessGrid {
 
 terrainStiffnessGrid::terrainStiffnessGrid()
 {
-  propertyNames_ = {"k_div_A", "sigma_rft"};
+  propertyNames_ = {"sigma_flat", "sigma_cone"};
 
   double deg_to_rad = 3.14159 / 180.;
-  grid_.insert(std::make_pair("k_div_A", Grid<double>(1.0e6, 1.0e7, 10)));
-  grid_.insert(std::make_pair("sigma_rft", Grid<double>(0.15e6, 0.6e6, 10)));
+  grid_.insert(std::make_pair("sigma_flat", Grid<double>(1.0e6, 1.0e7, 10)));
+  grid_.insert(std::make_pair("sigma_cone", Grid<double>(0.15e6, 0.6e6, 10)));
 
   iteration_ = 0;
   numTotalGrid_ = 1;
@@ -50,8 +50,8 @@ Eigen::VectorXd terrainStiffnessGrid::sample()
   Eigen::VectorXd p(10);
   p << 2.0, 3.14159 / 3., 2.7, 0.57, 1000, 1.0e6, 17.2, 0.15e6, 160.0, 1.0;
 
-  p[5] = grid_.at("k_div_A").get();
-  p[7] = grid_.at("sigma_rft").get();
+  p[5] = grid_.at("sigma_flat").get();
+  p[7] = grid_.at("sigma_cone").get();
 
   return p;
 }

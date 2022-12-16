@@ -21,7 +21,7 @@ bool raibotCompliantController::create(raisim::World *world) {
 
   raibotController_.setEstDim(8);
 
-  std::string network_path = "../module/controller/raibot_compliant_controller/network/network_efc83c9e_27000";
+  std::string network_path = "../module/controller/raibot_compliant_controller/network/network";
 
   encoder_.readParamFromTxt(network_path + "/encoder.txt");
   actor_.readParamFromTxt(network_path + "/actor.txt");

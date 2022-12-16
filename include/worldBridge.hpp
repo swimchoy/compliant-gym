@@ -81,16 +81,9 @@ class worldBridge {
 
     robot_->getPdGains(PGain_, DGain_);
     clk_ = 0;
-//    compliantContacts_.clear();
+
     contactEligibilityTrace_.setZero();
     contactStatus_.resize(4);
-  }
-
-  void setFootCollisionPosOffset(const std::vector<raisim::Vec<3>> &footOffset) {
-    if (footCollisionOffset_.size() != footOffset.size()) {
-      footCollisionOffset_.resize(footOffset.size());
-    }
-    std::copy(footOffset.begin(), footOffset.end(), footCollisionOffset_.begin());
   }
 
   void updateBoxPositions(raisim::World *world) {
@@ -115,15 +108,15 @@ class worldBridge {
 
     world->integrate1();
 
-    updateRobotStatus(world, robot_, 10);
+    updateRobotStatus(world, 10);
 
-    updateContactInfo(world, robot_);
+    updateContactInfo(world);
 
-    updateSoftContactForce(world, robot_);
+    updateSoftContactForce(world);
 
-    solveSoftContact(world, robot_);
+    solveSoftContact(world);
 
-    setTraverseResistiveForce(world, robot_);     // optional
+    setStrokeResistiveForce();
 
     maskOnFootCollision(15);
 
@@ -131,30 +124,28 @@ class worldBridge {
 
     maskOffFootCollision();
 
-    updateContactEligibility();     // optional
-
   }
 
-  void updateRobotStatus (raisim::World *world, raisim::ArticulatedSystem *robot, size_t max_clk) {
+  void updateRobotStatus (raisim::World *world, size_t max_clk) {
 
-    gc_ = robot->getGeneralizedCoordinate();
-    gv_ = robot->getGeneralizedVelocity();
+    gc_ = robot_->getGeneralizedCoordinate();
+    gv_ = robot_->getGeneralizedVelocity();
 
     if (clk_ == 0) {
-      robot->getMassMatrix();
-      M_inv_ = robot->getInverseMassMatrix();
+      robot_->getMassMatrix();
+      M_inv_ = robot_->getInverseMassMatrix();
     }
     gf_.setZero();
-    b_ = robot->getNonlinearities(world->getGravity());
+    b_ = robot_->getNonlinearities(world->getGravity());
 
-    Eigen::VectorXd pTarget(robot->getGeneralizedCoordinateDim());
-    Eigen::VectorXd dTarget(robot->getDOF());
-    robot->getPdTarget(pTarget, dTarget);
+    Eigen::VectorXd pTarget(robot_->getGeneralizedCoordinateDim());
+    Eigen::VectorXd dTarget(robot_->getDOF());
+    robot_->getPdTarget(pTarget, dTarget);
 
     for (int i = 0; i < 12; ++i) {
       gf_[i + 6] = PGain_.tail(12)[i] * (pTarget.tail(12)[i] - gc_.e().tail(12)[i]) +
           DGain_.tail(12)[i] * (dTarget.tail(12)[i] - gv_.e().tail(12)[i]) +
-          robot->getFeedForwardGeneralizedForce()[i];
+          robot_->getFeedForwardGeneralizedForce()[i];
     }
 
     raisim::vecsub(gf_, b_, tauMinusB_);
@@ -163,13 +154,13 @@ class worldBridge {
     clk_ = ++clk_ >= max_clk ? 0 : clk_;
   }
 
-  void updateContactInfo (raisim::World *world, raisim::ArticulatedSystem *robot) {
+  void updateContactInfo (raisim::World *world) {
     double mu = world->getMaterialPairProperties("default", "default").c_f;
 
     inContact_.clear();
     isRigidContact_.reset();
 
-    for (auto& contact: robot->getContacts()) {
+    for (auto& contact: robot_->getContacts()) {
       if (contact.skip()) continue;
       size_t idx = std::find(footIndices_.begin(), footIndices_.end(), contact.getlocalBodyIndex()) - footIndices_.begin();
       if (idx == footIndices_.size()) {
@@ -181,16 +172,16 @@ class worldBridge {
           inContact_.insert(idx);
           Contacts_[idx].pos = contact.getPosition();
           if (Contacts_[idx].pos[2] > 0) continue;
-          Contacts_[idx].rot.setIdentity();     // contact.getContactFrame();
-          Contacts_[idx].isRobotObjA = true;    // contact.isObjectA();
+          Contacts_[idx].rot.setIdentity();
+          Contacts_[idx].isRobotObjA = true;
 
           raisim::Vec<3> vel_w;
-          robot->getSparseJacobian(footIndices_[idx], Contacts_[idx].pos, Contacts_[idx].sparse_jaco);
-          robot->getVelocity(Contacts_[idx].sparse_jaco, vel_w);
+          robot_->getSparseJacobian(footIndices_[idx], Contacts_[idx].pos, Contacts_[idx].sparse_jaco);
+          robot_->getVelocity(Contacts_[idx].sparse_jaco, vel_w);
 
           raisim::matTransposevecmul(Contacts_[idx].rot, vel_w, Contacts_[idx].vimp_prev);
 
-          raisim::MatDyn MinvJT(robot->getDOF(), 3);
+          raisim::MatDyn MinvJT(robot_->getDOF(), 3);
           matSparseJacoTransposeMul(M_inv_, Contacts_[idx].sparse_jaco, MinvJT);
           sparseJacoMatMul(Contacts_[idx].sparse_jaco, MinvJT, Contacts_[idx].MappInv_W); // rotMat is identity.
           Contacts_[idx].imp = {0., 0., 0.};
@@ -209,7 +200,7 @@ class worldBridge {
 
   }
 
-  void updateSoftContactForce (raisim::World *world, raisim::ArticulatedSystem *robot) {
+  void updateSoftContactForce (raisim::World *world) {
 
     for (size_t idx = 0; idx < footIndices_.size(); ++idx) {
 
@@ -234,8 +225,8 @@ class worldBridge {
         raisim::Vec<3> footVel;
         raisim::SparseJacobian j;
 
-        robot->getSparseJacobian(footIndices_[idx], footPosition_[idx], j);
-        robot->getVelocity(j, footVel);
+        robot_->getSparseJacobian(footIndices_[idx], footPosition_[idx], j);
+        robot_->getVelocity(j, footVel);
 
         compliantContacts_[idx].updateFromUnContact(footVel[2]);
       }
@@ -243,7 +234,7 @@ class worldBridge {
     }
   }
 
-  void solveSoftContact (raisim::World* world, raisim::ArticulatedSystem* robot) {
+  void solveSoftContact (raisim::World* world) {
     double c_z;
     double c_t;
     double alpha = 0.5;
@@ -273,17 +264,9 @@ class worldBridge {
             if (j == idx) continue;
             auto contact_j = &Contacts_[j];
             if (contact->isRobotObjA && contact_j->isRobotObjA) {
-
-              raisim::VecDyn MinvJTRimp(robot->getDOF());
+              raisim::VecDyn MinvJTRimp(robot_->getDOF());
               matvecmul(contact_j->MinvJTR, contact_j->imp, MinvJTRimp);
               sparseJacoVecMulThenAdd(contact->RTJ, MinvJTRimp, contact->vimp);
-
-            } else if (contact->isRobotObjA && !contact_j->isRobotObjA) {
-//              contact->vimp -= contact->rot.e().transpose() * contact->jaco * M_inv_.e() * contact_j->jaco.transpose() * contact_j->rot * contact_j->imp;
-            } else if (!contact->isRobotObjA && contact_j->isRobotObjA) {
-//              contact->vimp -= contact->rot.e().transpose() * contact->jaco * Zero * contact_j->jaco.transpose() * contact_j->rot * contact_j->imp;
-            } else if (!contact->isRobotObjA && !contact_j->isRobotObjA) {
-//              contact->vimp += contact->rot.e().transpose() * contact->jaco * Zero * contact_j->jaco.transpose() * contact_j->rot * contact_j->imp;
             }
           }
 
@@ -305,7 +288,6 @@ class worldBridge {
                                 : 0.0,
                                 contact->mu);
           }
-//          raisim::Vec<2> next_imp_t = prox_t(contact->imp.e().head(2) - contact->vimp.e().head(2) * c_t, next_imp_z, contact->mu);
 
           totalErr += std::abs(contact->imp[2] - next_imp_z);
           totalErr += (contact->imp.e().head(2) - next_imp_t.e()).norm();
@@ -314,10 +296,9 @@ class worldBridge {
 
         if (++loopCount > 150) break;
       }
-//      RSWARN_IF(loopCount > 150, "TimeOutWarning: contact solution might not be correct")
 
       for (auto idx: inContact_) {
-        robot->setExternalForce(footIndices_[idx],
+        robot_->setExternalForce(footIndices_[idx],
                                 raisim::ArticulatedSystem::Frame::WORLD_FRAME,
                                 (Contacts_[idx].rot * Contacts_[idx].imp) / (world->getTimeStep() + 1e-10),
                                 raisim::ArticulatedSystem::Frame::WORLD_FRAME,
@@ -326,15 +307,15 @@ class worldBridge {
     }
   }
 
-  void setTraverseResistiveForce(raisim::World *world, raisim::ArticulatedSystem *robot) {
+  void setStrokeResistiveForce() {
     if (!inContact_.empty()) {
       for (auto idx: inContact_) {
         if (compliantContacts_[idx].isActive()) {
           if (compliantContacts_[idx].isTraversing()) {
             raisim::Vec<3> F_r;
             raisim::Vec<3> pos_r;
-            if (compliantContacts_[idx].getTraverseResistive(&Contacts_[idx], F_r, pos_r)) {
-              robot->setExternalForce(footIndices_[idx],
+            if (compliantContacts_[idx].getStrokeResistive(&Contacts_[idx], F_r, pos_r)) {
+              robot_->setExternalForce(footIndices_[idx],
                                       raisim::ArticulatedSystem::Frame::WORLD_FRAME,
                                       F_r,
                                       raisim::ArticulatedSystem::Frame::WORLD_FRAME,
@@ -360,61 +341,6 @@ class worldBridge {
     }
   }
 
-  void integrate2(raisim::World *world, raisim::ArticulatedSystem *robot) {
-
-    raisim::VecDyn ga(robot->getDOF());
-    ga = MinvTauMinusB_;
-
-    for (auto idx: inContact_) {
-      raisim::VecDyn v(robot->getDOF());
-      sparseJacoTransposeVecmul(Contacts_[idx].sparse_jaco, (Contacts_[idx].rot * Contacts_[idx].imp) / (world->getTimeStep() + 1e-10), v);
-      matVecMulThenAdd(M_inv_, v, ga);
-    }
-
-    raisim::vecScalarMulThenAdd(world->getTimeStep(), ga, gv_);
-
-    raisim::Vec<4> dq;
-    raisim::Vec<4> q_next;
-    raisim::Vec<4> q = {gc_[3], gc_[4], gc_[5], gc_[6]};
-    raisim::Vec<3> w = {gv_[3], gv_[4], gv_[5]};
-    raisim::eulerVecToQuat(w * world->getTimeStep(), dq);
-    raisim::quatMul(q, dq, q_next);
-    q_next /= q_next.norm();
-    for (int i = 0; i < gc_.size(); ++i) {
-      if (i == 0 || i == 1 || i == 2) {
-        gc_[i] += world->getTimeStep() * gv_[i];
-      } else if (i == 3 || i == 4 || i == 5 || i == 6) {
-        gc_[i] = q_next[i - 3];
-      } else {
-        gc_[i] += world->getTimeStep() * gv_[i - 1];
-      }
-    }
-
-    robot->setGeneralizedCoordinate(gc_);
-    robot->setGeneralizedVelocity(gv_);
-  }
-
-  void updateContactEligibility() {
-    // TODO: TO BE TUNED CORRESPONDING TO THE SIMULATION DT
-    for (int i = 0; i < contactEligibilityTrace_.size(); ++i) {
-      if (inContact_.count(i)) {
-        if (Contacts_[i].imp.e().norm() > 1e-8) {
-          contactEligibilityTrace_[i] = 1.0;
-        } else {
-          contactEligibilityTrace_[i] *= 0.99;
-        }
-      } else {
-        contactEligibilityTrace_[i] *= 0.99;
-      }
-
-      if (contactStatus_[i] && contactEligibilityTrace_[i] < 0.8) {
-        contactStatus_[i] = false;
-      } else if (!contactStatus_[i] && contactEligibilityTrace_[i] >= 0.8) {
-        contactStatus_[i] = true;
-      }
-    }
-  }
-
   void getContactStatus(std::vector<bool> &contactStatus) {
     std::copy(contactStatus_.begin(), contactStatus_.end(), contactStatus.begin());
   }
@@ -435,16 +361,6 @@ class worldBridge {
 
   double getMaxPenetrationDepth(int index) {
     return compliantContacts_[index].getMaxPenetrationDepth();
-  }
-
-  bool getJacoTransposeGRFPerLeg(size_t idx, raisim::World *world, Eigen::VectorXd &JTF) {
-    if (!inContact_.count(idx) || Contacts_[idx].imp.e().norm() < 1e-8) {
-      return false;
-    } else {
-      JTF.segment(3 * idx, 3) = sparseJacoTransposeVecmulPerLeg(Contacts_[idx].sparse_jaco,
-                                                                (Contacts_[idx].rot * Contacts_[idx].imp) / (world->getTimeStep() + 1e-10));
-      return true;
-    }
   }
 
  private:

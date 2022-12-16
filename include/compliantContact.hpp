@@ -47,15 +47,15 @@ class CompliantContact {
       double R = 8 * r_tmp * FOOT::h / (2 * (2 * r_tmp + FOOT::h));
 
       double A_flat = 3.14159 * (R * R +
-          std::pow(gm_->mu * (z_tmp - 0) / std::tan(gm_->theta), 2) -
-          2 * R * gm_->mu * (z_tmp - 0) / std::tan(gm_->theta));
-      if (R -  (gm_->mu * z / std::tan(gm_->theta)) < 0) {
+          std::pow(gm_->nu * (z_tmp - 0) / std::tan(gm_->theta), 2) -
+          2 * R * gm_->nu * (z_tmp - 0) / std::tan(gm_->theta));
+      if (R -  (gm_->nu * z / std::tan(gm_->theta)) < 0) {
         A_flat = 0.;
       }
       double A_cone = (3.14159 * R * R - A_flat) / std::cos(gm_->theta);
 
-      F_p_ += gm_->k_div_A * A_flat * delta_z_tmp;
-      F_p_ += gm_->sigma_rft * A_cone * delta_z_tmp;
+      F_p_ += gm_->sigma_flat * A_flat * delta_z_tmp;
+      F_p_ += gm_->sigma_cone * A_cone * delta_z_tmp;
     }
   }
 
@@ -158,22 +158,22 @@ class CompliantContact {
     double R = 8 * r_tmp * FOOT::h / (2 * (2 * r_tmp + FOOT::h)); // hydraulic radius 4A / P
 
     double A_flat = 3.14159 * (R * R +
-        std::pow(gm_->mu * (z - 0) / std::tan(gm_->theta), 2) -
-        2 * R * gm_->mu * (z - 0) / std::tan(gm_->theta));
-    if (R -  (gm_->mu * z / std::tan(gm_->theta)) < 0) {
+        std::pow(gm_->nu * (z - 0) / std::tan(gm_->theta), 2) -
+        2 * R * gm_->nu * (z - 0) / std::tan(gm_->theta));
+    if (R -  (gm_->nu * z / std::tan(gm_->theta)) < 0) {
       A_flat = 0.;
     }
     double A_cone = (3.14159 * R * R - A_flat) / std::cos(gm_->theta);
 
-    m_added_ += gm_->c_g * gm_->phi * gm_->rho * gm_->mu * A_flat * delta_z;
+    m_added_ += gm_->c_g * gm_->phi * gm_->rho * gm_->nu * A_flat * delta_z;
 
-    F_p_ += gm_->k_div_A * A_flat * delta_z;
-    F_p_ += gm_->sigma_rft * A_cone * delta_z;
+    F_p_ += gm_->sigma_flat * A_flat * delta_z;
+    F_p_ += gm_->sigma_cone * A_cone * delta_z;
 
     if (dz_ > 0 && max_penetration_[2] - 1e-4 <= z)
     {
-      double m_added_dot = gm_->c_g * gm_->phi * gm_->rho * gm_->mu * A_flat * dz_;
-      F_g_ = F_p_ + gm_->b * m_added_dot * dz_ + m_added_ * ddz;
+      double m_added_dot = gm_->c_g * gm_->phi * gm_->rho * gm_->nu * A_flat * dz_;
+      F_g_ = F_p_ + gm_->c_d * m_added_dot * dz_ + m_added_ * ddz;
     }
     else
     {
@@ -206,22 +206,22 @@ class CompliantContact {
     return isTraversing_;
   }
 
-  bool getTraverseResistive(raisim::ContactContainer *contact, raisim::Vec<3> &F_r, raisim::Vec<3> &pos_r) {
+  bool getStrokeResistive(raisim::ContactContainer *contact, raisim::Vec<3> &F_r, raisim::Vec<3> &pos_r) {
     if (isTraversing_) {
       double dist = norm2d(contact->pos.head<2>(), pos_marker_.head<2>());
       double z = contact->pos[2] < 0. ? -contact->pos[2] : 0.0;
       double t_depth = traverseDepth(dist, z, pos_marker_[2]);
       if (t_depth > 0 && dist_max_ < dist && z > FOOT::r) {
-        double F_r_elastic = gm_->k_t * (t_depth + 0.5 * (z - FOOT::r));
+        double F_r_elastic = gm_->k_h * (t_depth + 0.5 * (z - FOOT::r));
 
         F_r = {-F_r_elastic * (contact->pos[0] - pos_marker_[0]) / dist,
                -F_r_elastic * (contact->pos[1] - pos_marker_[1]) / dist,
                0};
 
         if ((contact->vimp_prev[0] < 0) == (contact->pos[0] - pos_marker_[0] < 0))
-          F_r[0] -= gm_->b_t * contact->vimp_prev[0];
+          F_r[0] -= gm_->b_h * contact->vimp_prev[0];
         if ((contact->vimp_prev[1] < 0) == (contact->pos[1] - pos_marker_[1] < 0))
-          F_r[1] -= gm_->b_t * contact->vimp_prev[1];
+          F_r[1] -= gm_->b_h * contact->vimp_prev[1];
 
         pos_r = contact->pos;
         pos_r[0] += std::copysign(FOOT::r,  pos_r[0] - pos_marker_[0]);

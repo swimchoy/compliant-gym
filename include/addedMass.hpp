@@ -56,7 +56,6 @@ class addedMass {
       contact_.vimp = contact_.vimp_prev + contact_.imp / cyl->getMass();
       raisim::Vec<2> next_imp_t = prox_t(contact_.imp.e().head(2) - contact_.vimp.e().head(2) * c_t,
                                          compliantContact_.getNormalForTangential(simulation_dt),
-//                                         contact_.imp[2],
                                          mu);
       err += (contact_.imp.e().head(2) - next_imp_t.e()).norm();
       contact_.imp.head<2>() = next_imp_t;
